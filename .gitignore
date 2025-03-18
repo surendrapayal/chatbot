@@ -1,3 +1,5 @@
+.idea/
+
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -21,3 +23,58 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+
+
+# Node.js dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build directories
+build/
+dist/
+
+# Local environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Editor and OS-specific files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+yarn-error.log
+npm-debug.log
+debug.log
+
+# Cache directories
+.cache/
+.next/
+out/
+coverage/
+
+# Tests
+jest/
+cypress/videos/
+cypress/screenshots/
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+public/*.cache
+public/.DS_Store
+
+.idea/
+.idea/
