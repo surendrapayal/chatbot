@@ -37,43 +37,77 @@ const Chatbot = () => {
   // };
 
   const handleFeedback = async (index, feedbackType) => {
-    setMessages((prevMessages) => {
-      // const latestMessage = prevMessages[prevMessages.length - 1]; // Get the latest message
-      // console.log("Latest Message Text:", latestMessage.text);
-      // console.log("Issue:", latestMessage.text.issue);
-      // console.log("Priority:", latestMessage.text.priority);
 
+    setMessages((prevMessages) => {
       return prevMessages.map((msg, i) =>
         i === index
           ? {
-            ...msg,
-            feedback: feedbackType,
-            feedbackMessage:
-              feedbackType === "up"
-                ? "Thanks for the feedback. We are processing the issue. Please wait..."
-                : "Thank you for the feedback. Please provide more details.",
-            feedbackGiven: true, // Added this flag to track feedback
-          }
+              ...msg,
+              feedback: feedbackType,
+              feedbackMessage:
+                msg.text.description ===
+                "This issue does not appear to be related to any GP products, and unfortunately, I am unable to proceed with further action. Thank you for your understanding."
+                  ? "Thank you for the feedback. Unfortunately, this issue is not related to any GP products, and no further action can be taken."
+                  : feedbackType === "up"
+                  ? "Thank you for the feedback. We are processing the issue. Please wait..."
+                  : "Thank you for the feedback. Please provide more details.",
+              feedbackGiven: true, // Indicate that feedback has been provided
+            }
           : msg
       );
     });
 
+    // setMessages((prevMessages) => {
+    //   // const latestMessage = prevMessages[prevMessages.length - 1]; // Get the latest message
+    //   // console.log("Latest Message Text:", latestMessage.text);
+    //   // console.log("Issue:", latestMessage.text.issue);
+    //   // console.log("Priority:", latestMessage.text.priority);
+
+    //   return prevMessages.map((msg, i) =>
+    //     i === index
+    //       ? {
+    //         ...msg,
+    //         feedback: feedbackType,
+    //         feedbackMessage:
+    //           feedbackType === "up"
+    //             ? "Thank you for the feedback. We are processing the issue. Please wait..."
+    //             : "Thank you for the feedback. Please provide more details.",
+    //         feedbackGiven: true, // Added this flag to track feedback
+    //       }
+    //       : msg
+    //   );
+    // });
+
+    const latestMessage = messages[messages.length - 1];
+
+    // Check for description condition
+    if (latestMessage.text.description === "This issue does not appear to be related to any GP products, and unfortunately, I am unable to proceed with further action. Thank you for your understanding.") {
+      // Display the same message without any modification
+      // setMessages((prevMessages) => [
+      //   ...prevMessages,
+      //   { text: latestMessage.text, sender: 'bot', priorityIdentification: true, stage: 'incident_creation' }
+      // ]);
+      // prevMessages.feedbackMessage = "Thank you for the feedback. Please provide more details."
+
+      console.log("Skip the feedback logic if condition is met")
+      return; // Skip the feedback logic if condition is met
+    }
+
     // If the feedback is "up", send request to Jira creation API
     if (feedbackType === "up") {
       console.log('inside feedback up condition')
-      const latestMessage = messages[messages.length - 1];
+      // const latestMessage = messages[messages.length - 1];
       // setMessages([...messages, { text: userInput, sender: 'user' }]);
       // setUserInput('');
 
-      console.log(JSON.stringify(latestMessage, null, 2))
-      console.log(JSON.stringify({
-        priority: latestMessage.text.priority,
-        summary: latestMessage.text.summary,
-        description: latestMessage.text.description
-      }));
+      // console.log(JSON.stringify(latestMessage, null, 2))
+      // console.log(JSON.stringify({
+      //   priority: latestMessage.text.priority,
+      //   summary: latestMessage.text.summary,
+      //   description: latestMessage.text.description
+      // }));
 
       try {
-
         const jiraCreationResponse = await fetch("http://127.0.0.1:8080/jira_creation", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -163,7 +197,6 @@ const Chatbot = () => {
         // }));
 
         try {
-
           const feedbackResponse = await fetch("http://127.0.0.1:8080/feedback", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
