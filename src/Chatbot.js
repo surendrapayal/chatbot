@@ -262,8 +262,6 @@ const Chatbot = () => {
 
                     {msg.text.jira_id && (
                       <p id="rs">
-                        {/* <strong>JIRA ID:</strong> {msg.text.jira_id} <br /><br />
-                      <strong>JIRA Link:</strong> <a href={msg.text.jira_link} target="_blank" rel="noopener noreferrer">{msg.text.jira_link}</a> <br /><br /> */}
                         <br /><strong>JIRA Link:</strong> <a href={msg.text.jira_link} target="_blank" rel="noopener noreferrer">{msg.text.jira_id}</a> <br /><br />
                       </p>
                     )}
@@ -271,8 +269,6 @@ const Chatbot = () => {
                     {/* Conditionally Display Whiteboard Information */}
                     {msg.text.white_board_id && (
                       <p id="rs">
-                        {/* <strong>Whiteboard ID:</strong> {msg.text.white_board_id} <br />
-                      <strong>Whiteboard Link:</strong> <a href={msg.text.white_board_link} target="_blank" rel="noopener noreferrer">{msg.text.white_board_link}</a> <br /><br /> */}
                         <strong>White Board Information:</strong> <a href={msg.text.white_board_link} target="_blank" rel="noopener noreferrer">White Board</a> <br /><br />
                       </p>
                     )}
@@ -280,30 +276,9 @@ const Chatbot = () => {
                     {/* Conditionally Display Status Page Information */}
                     {msg.text.status_io_id && (
                       <p id="rs">
-                        {/* <strong>Status Page ID:</strong> {msg.text.status_io_id} <br />
-                      <strong>Status Page Link:</strong> <a href={msg.text.status_io_page_link} target="_blank" rel="noopener noreferrer">{msg.text.status_io_page_link}</a> <br /><br /> */}
                         <strong>Status IO Page Information:</strong> <a href={msg.text.status_io_page_link} target="_blank" rel="noopener noreferrer">Status IO Page</a> <br /><br />
                       </p>
                     )}
-
-                    {/* {msg.stage !== "incident_creation" && (
-                      <div className="feedback-buttons">
-                        <button
-                          className={`thumb-button ${msg.feedback === "up" ? "selected" : ""}`}
-                          onClick={() => handleFeedback(index, "up")}
-                          disabled={msg.feedbackGiven}
-                        >
-                          👍
-                        </button>
-                        <button
-                          className={`thumb-button ${msg.feedback === "down" ? "selected" : ""}`}
-                          onClick={() => handleFeedback(index, "down")}
-                          disabled={msg.feedbackGiven}
-                        >
-                          👎
-                        </button>
-                      </div>
-                    )} */}
                     {msg.stage !== "incident_creation" && (
                       <div className="feedback-buttons">
                         <button
