@@ -52,6 +52,7 @@ const Chatbot = () => {
 
     if (feedbackType === "up") {
       try {
+        // Step 1: Execute Jira Creation API
         const jiraCreationResponse = await fetch(
           "http://127.0.0.1:8080/jira_creation",
           {
@@ -68,9 +69,44 @@ const Chatbot = () => {
         console.log('Response from http://127.0.0.1:8080/jira_creation end point url')
         console.log(JSON.stringify(jiraData, null, 2))
 
-        const whiteBoardResponse = await fetch(
-          "http://127.0.0.1:8080/white_board_creation",
-          {
+
+        // const whiteBoardResponse = await fetch(
+        //   "http://127.0.0.1:8080/white_board_creation",
+        //   {
+        //     method: "POST",
+        //     headers: { "Content-Type": "application/json" },
+        //     body: JSON.stringify({
+        //       jira_id: jiraData.jira_id,
+        //       summary: latestMessage.text.summary,
+        //       segment: latestMessage.text.segment,
+        //       product: latestMessage.text.product,
+        //     }),
+        //   }
+        // );
+        // const whiteBoardData = await whiteBoardResponse.json();
+        // console.log('Response from http://127.0.0.1:8080/white_board_creation end point url')
+        // console.log(JSON.stringify(whiteBoardData, null, 2))
+
+        // const statusPageResponse = await fetch(
+        //   "http://127.0.0.1:8080/status_page_creation",
+        //   {
+        //     method: "POST",
+        //     headers: { "Content-Type": "application/json" },
+        //     body: JSON.stringify({
+        //       jira_id: jiraData.jira_id,
+        //       description: latestMessage.text.description,
+        //       priority: latestMessage.text.priority,
+        //       summary: latestMessage.text.summary,
+        //     }),
+        //   }
+        // );
+        // const statusPageData = await statusPageResponse.json();
+        // console.log('Response from http://127.0.0.1:8080/status_page_creation end point url')
+        // console.log(JSON.stringify(statusPageData, null, 2))
+
+        // Step 2: Execute White Board Creation & Status Page Creation in Parallel
+        const [whiteBoardData, statusPageData] = await Promise.all([
+          fetch("http://127.0.0.1:8080/white_board_creation", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -79,15 +115,9 @@ const Chatbot = () => {
               segment: latestMessage.text.segment,
               product: latestMessage.text.product,
             }),
-          }
-        );
-        const whiteBoardData = await whiteBoardResponse.json();
-        console.log('Response from http://127.0.0.1:8080/white_board_creation end point url')
-        console.log(JSON.stringify(whiteBoardData, null, 2))
+          }).then((res) => res.json()),
 
-        const statusPageResponse = await fetch(
-          "http://127.0.0.1:8080/status_page_creation",
-          {
+          fetch("http://127.0.0.1:8080/status_page_creation", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -96,34 +126,38 @@ const Chatbot = () => {
               priority: latestMessage.text.priority,
               summary: latestMessage.text.summary,
             }),
-          }
-        );
-        const statusPageData = await statusPageResponse.json();
-        console.log('Response from http://127.0.0.1:8080/status_page_creation end point url')
-        console.log(JSON.stringify(statusPageData, null, 2))
+          }).then((res) => res.json()),
+        ]);
 
-        const sendNotificationResponse = await fetch(
-          "http://127.0.0.1:8080/send_notification",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              description: latestMessage.text.description,
-              jira_id: jiraData.jira_id,
-              jira_link: jiraData.jira_link,
-              status_io_link: statusPageData.status_io_page_link,
-              white_board_link: whiteBoardData.white_board_link,
-              segment: latestMessage.text.segment,
-              product: latestMessage.text.product,
-              priority: latestMessage.text.priority,
-              impact: latestMessage.text.impact
-            }),
-          }
-        );
-        const sendNotificationData = await sendNotificationResponse.json();
-        console.log('Response from http://127.0.0.1:8080/send_notification end point url')
-        console.log(JSON.stringify(sendNotificationData, null, 2))
+        console.log("Response from white_board_creation API:");
+        console.log(JSON.stringify(whiteBoardData, null, 2));
 
+        console.log("Response from status_page_creation API:");
+        console.log(JSON.stringify(statusPageData, null, 2));
+
+        // const sendNotificationResponse = await fetch(
+        //   "http://127.0.0.1:8080/send_notification",
+        //   {
+        //     method: "POST",
+        //     headers: { "Content-Type": "application/json" },
+        //     body: JSON.stringify({
+        //       description: latestMessage.text.description,
+        //       jira_id: jiraData.jira_id,
+        //       jira_link: jiraData.jira_link,
+        //       status_io_link: statusPageData.status_io_page_link,
+        //       white_board_link: whiteBoardData.white_board_link,
+        //       segment: latestMessage.text.segment,
+        //       product: latestMessage.text.product,
+        //       priority: latestMessage.text.priority,
+        //       impact: latestMessage.text.impact
+        //     }),
+        //   }
+        // );
+        // const sendNotificationData = await sendNotificationResponse.json();
+        // console.log('Response from http://127.0.0.1:8080/send_notification end point url')
+        // console.log(JSON.stringify(sendNotificationData, null, 2))
+
+        // Step 3: Update the UI with responses from Jira, White Board, and Status Page APIs
         const updatedMessage = {
           ...latestMessage,
           text: {
@@ -139,8 +173,6 @@ const Chatbot = () => {
 
         console.log('updatedMessage:-\n' + updatedMessage)
 
-
-
         setMessages((prevMessages) => [
           ...prevMessages,
           {
@@ -150,6 +182,32 @@ const Chatbot = () => {
             stage: "incident_creation",
           },
         ]);
+
+        // Step 4: Run send_notification in the background (without awaiting its response)
+        fetch("http://127.0.0.1:8080/send_notification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            description: latestMessage.text.description,
+            jira_id: jiraData.jira_id,
+            jira_link: jiraData.jira_link,
+            status_io_link: statusPageData.status_io_page_link,
+            white_board_link: whiteBoardData.white_board_link,
+            segment: latestMessage.text.segment,
+            product: latestMessage.text.product,
+            priority: latestMessage.text.priority,
+            impact: latestMessage.text.impact,
+          }),
+        })
+          .then((res) => res.json())
+          .then((sendNotificationData) => {
+            console.log("Response from send_notification API (background):");
+            console.log(JSON.stringify(sendNotificationData, null, 2));
+          })
+          .catch((error) => {
+            console.error("Error sending notification:", error);
+          });
+
       } catch (error) {
         console.error("Error creating issue details:", error);
         alert("Failed to create issue details");
