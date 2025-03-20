@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useState } from "react";
 import "./Chatbot.css";
 import logo from "./gpn.png";
+import miclogo from "./microphone-svgrepo-com.svg";
 
 const Chatbot = () => {
 
@@ -16,11 +17,71 @@ const Chatbot = () => {
   ]);
   const [userInput, setUserInput] = useState("");
   const [isOpen, setIsOpen] = useState(false);
+  const [isListening, setIsListening] = useState(false); // State for speech recognition
   const messageEndRef = useRef(null);
+  const recognitionRef = useRef(null);
+
 
   useEffect(() => {
     messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // useEffect(() => {
+  //   messageEndRef.current?.scrollIntoView({ behavior: "smooth" });
+
+  //   // Initialize speech recognition
+  //   if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
+  //     const SpeechRecognition =
+  //       window.SpeechRecognition || window.webkitSpeechRecognition;
+  //     const recognition = new SpeechRecognition();
+
+  //     recognition.continuous = false;
+  //     recognition.interimResults = false;
+  //     recognition.lang = "en-US";
+
+  //     recognition.onstart = () => setIsListening(true);
+  //     recognition.onend = () => setIsListening(false);
+  //     recognition.onerror = (event) => console.error("Speech Error: ", event);
+  //     recognition.onresult = (event) => {
+  //       const transcript = event.results[0][0].transcript;
+  //       setUserInput(transcript); // Set recognized speech to input
+  //     };
+
+  //     recognitionRef.current = recognition;
+  //   }
+  // }, []);
+
+  useEffect(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.lang = "en-US";
+
+      // recognitionRef.current.onresult = (event) => {
+      //   const transcript = event.results[0][0].transcript;
+      //   setUserInput(transcript);
+      //   setIsListening(false);
+      // };
+
+      recognitionRef.current.onresult = (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript;
+        setUserInput((prevInput) => prevInput + " " + transcript); // Append new speech to existing input
+      };
+
+      recognitionRef.current.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsListening(false);
+      };
+
+      recognitionRef.current.onend = () => {
+        setIsListening(false);
+      };
+    } else {
+      console.warn("Speech recognition not supported in this browser.");
+    }
+  }, []);
 
   const handleInputChange = (e) => setUserInput(e.target.value);
 
@@ -279,6 +340,35 @@ const Chatbot = () => {
     }
   };
 
+  // const handleStartListening = () => {
+  //   if (recognitionRef.current) {
+  //     recognitionRef.current.start();
+  //   }
+  // };
+
+  const toggleListening = () => {
+    if (isListening) {
+      recognitionRef.current.stop();
+    } else {
+      recognitionRef.current.start();
+    }
+    setIsListening(!isListening);
+  };
+
+  const startListening = () => {
+    if (recognitionRef.current && !isListening) {
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current && isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+  };
+
   return (
     <div>
       <div className="chatbot-icon-container" onClick={() => setIsOpen(!isOpen)}>
@@ -379,6 +469,36 @@ const Chatbot = () => {
               onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
             />
             <button onClick={handleSendMessage}>Send</button>
+            {/* <button onClick={handleStartListening}>
+              🎤 {isListening ? "Listening..." : "Speak"}
+            </button> */}
+
+            {/* <button onClick={handleStartListening}>
+              {isListening ? <span className="wave-animation">🎙️</span> : <img src={miclogo} alt="Mic" width="15" className="mic-icon" />}
+            </button> */}
+
+            {/* <button onClick={toggleListening} className={`microphone-button ${isListening ? "listening" : ""}`}>
+              🎤
+            </button> */}
+
+            {/* {<button onClick={toggleListening}>
+              {isListening ? <span className="wave-animation">🎙️</span> : <img src={miclogo} alt="Mic" width="15" className="mic-icon" />}
+            </button>} */}
+
+            {/* <button
+              onClick={isListening ? stopListening : startListening}
+              className={`microphone-button ${isListening ? "listening" : ""}`}
+            >
+              🎤
+            </button> */}
+
+            <button
+              onClick={isListening ? stopListening : startListening}
+              // className={`microphone-button ${isListening ? "listening" : ""}`}
+            >
+              {isListening ? <span className="wave-animation">🎙️</span> : <img src={miclogo} alt="Mic" width="15" className="mic-icon" />}
+            </button>
+
           </div>
         </div>
       )}
