@@ -1,15 +1,27 @@
 import React, { useRef, useEffect, useState } from 'react';
 import './Chatbot.css';
 import logo from "./gpn.png";
+import miclogo from "./microphone-svgrepo-com.svg";
+//From 26464
+import axios from 'axios';
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([
-    { text: 'Hello! How can I assist you today?', sender: 'bot', priorityIdentification: false, stage: "" }
+    { text: 'Hello! How can I assist you today?', sender: 'bot' }
   ]);
   const [userInput, setUserInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const messageEndRef = useRef(null);
-  // const [recording, setRecording] = useState(false);
+  const [recording, setRecording] = useState(false);
+
+  //From 26464
+  // const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [formState, setFormState] = useState({
+    request_type: null,
+    input: '',
+    follow_up_question: null
+  });
 
   useEffect(() => {
     if (messageEndRef.current) {
@@ -17,202 +29,115 @@ const Chatbot = () => {
     }
   }, [messages]);
 
+  // const handleInputChange = (e) => {
+  //   setUserInput(e.target.value);
+  // };
+
+  //From 26464
   const handleInputChange = (e) => {
     setUserInput(e.target.value);
   };
 
-  // const handleFeedback = (index, feedbackType) => {
-  //   setMessages((prevMessages) =>
-  //     prevMessages.map((msg, i) =>
-  //       i === index ? {
-  //         ...msg,
-  //         feedback: feedbackType,
-  //         feedbackMessage:
-  //           feedbackType === "up"
-  //             ? "Thanks for the feedback. We are processing the issue."
-  //             : "Thank you for the feedback. Please provide more details."
-  //       } : msg
-  //     )
-  //   );
-  // };
+  //From 26464
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault(); // Check if event exists
 
-  const handleFeedback = async (index, feedbackType) => {
-    setMessages((prevMessages) => {
-      // const latestMessage = prevMessages[prevMessages.length - 1]; // Get the latest message
-      // console.log("Latest Message Text:", latestMessage.text);
-      // console.log("Issue:", latestMessage.text.issue);
-      // console.log("Priority:", latestMessage.text.priority);
+    if (!userInput.trim()) return;
 
-      return prevMessages.map((msg, i) =>
-        i === index
-          ? {
-            ...msg,
-            feedback: feedbackType,
-            feedbackMessage:
-              feedbackType === "up"
-                ? "Thanks for the feedback. We are processing the issue. Please wait..."
-                : "Thank you for the feedback. Please provide more details.",
-            feedbackGiven: true, // Added this flag to track feedback
-          }
-          : msg
-      );
-    });
+    const userMessage = { text: userInput, sender: 'user' };
+    setMessages(prev => [...prev, userMessage]);
+    setUserInput('');
+    setIsLoading(true);
 
-    // If the feedback is "up", send request to Jira creation API
-    if (feedbackType === "up") {
-      console.log('inside feedback up condition')
-      const latestMessage = messages[messages.length - 1];
-      // setMessages([...messages, { text: userInput, sender: 'user' }]);
-      // setUserInput('');
+    try {
+      const updatedState = { ...formState, input: userInput };
+      // Determine which endpoint to call based on the current state
+      // /intent_identification
+      let endpoint = '/get_ticket_information';
+      let requestData = updatedState;
 
-      console.log(JSON.stringify(latestMessage, null, 2))
-      console.log(JSON.stringify({
-        priority: latestMessage.text.priority,
-        summary: latestMessage.text.summary,
-        description: latestMessage.text.description
-      }));
+      // const latestBotMessage = [...messages].reverse().find(msg => msg.sender === 'bot');
+      // if (!latestBotMessage?.intent || latestBotMessage.intent === 'Unknown') {
+      //   endpoint = '/intent_identification';
+      // }else{
+      //   endpoint = '/get_ticket_information';
 
-      try {
+      // }
+      
 
-        const jiraCreationResponse = await fetch("http://127.0.0.1:8080/jira_creation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            priority: latestMessage.text.priority,
-            summary: latestMessage.text.summary,
-            description: latestMessage.text.description
-          }),
-        });
-        const jiraCreationResponseData = await jiraCreationResponse.json();
-        console.log('Response from http://127.0.0.1:8080/jira_creation end point url')
-        console.log(JSON.stringify(jiraCreationResponseData, null, 2))
-
-
-        const whiteBoardCreationResponse = await fetch("http://127.0.0.1:8080/white_board_creation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            jira_id: jiraCreationResponseData.jira_id,
-            summary: latestMessage.text.summary,
-            segment: latestMessage.text.segment,
-            product: latestMessage.text.product
-          }),
-        });
-        const whiteBoardCreationResponseData = await whiteBoardCreationResponse.json();
-        console.log('Response from http://127.0.0.1:8080/white_board_creation end point url')
-        console.log(JSON.stringify(whiteBoardCreationResponseData, null, 2))
-
-        const statusPageCreationResponse = await fetch("http://127.0.0.1:8080/status_page_creation", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            jira_id: jiraCreationResponseData.jira_id,
-            description: latestMessage.text.description,
-            priority: latestMessage.text.priority,
-            summary: latestMessage.text.summary
-          }),
-        });
-        const statusPageCreationResponseData = await statusPageCreationResponse.json();
-        console.log('Response from http://127.0.0.1:8080/status_page_creation end point url')
-        console.log(JSON.stringify(statusPageCreationResponseData, null, 2))
-
-        const updatedMessage = {
-          ...latestMessage,
-          text: {
-            ...latestMessage.text, // Keep existing properties
-            jira_id: jiraCreationResponseData.jira_id,
-            jira_link: jiraCreationResponseData.jira_link,
-            white_board_id: whiteBoardCreationResponseData.white_board_id,
-            white_board_link: whiteBoardCreationResponseData.white_board_link,
-            status_io_id: statusPageCreationResponseData.status_io_id,
-            status_io_page_link: statusPageCreationResponseData.status_io_page_link
-          }
-        };
-        console.log("updatedMessage")
-        console.log(JSON.stringify(updatedMessage, null, 2))
-
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { text: updatedMessage.text, sender: 'bot', priorityIdentification: true, stage: 'incident_creation' }
-        ]);
-      } catch (error) {
-        console.error("Error creating issue details:", error);
-        alert("Failed to create issue details");
+      // If we're in confirmation mode and user confirms, call create_ticket
+      // if (formState.is_create_ticket && userInput.toLowerCase() === 'confirm') {
+      if (userInput.toLowerCase() === 'confirm') {
+        endpoint = '/create_ticket';
+        // requestData = { ...updatedState, is_create_ticket: 'Confirm' };
+        requestData = { ...updatedState };
       }
-    }
-  };
 
-  const handleSendMessage = async () => {
-    if (userInput.trim()) {
+      console.log("endpoint")
+      console.log(endpoint)
 
-      const latestMessage = messages[messages.length - 1];
-      // console.log('latestMessage in handleSendMessage:- ' + latestMessage.text)
+      // const response = await axios.post('http://localhost:8080/get_ticket_information', updatedState);
+      const response = await axios.post(`http://localhost:8080${endpoint}`, requestData);
+      console.log(response)
+      // const botResponse = response.data.follow_up_question ||
+      //   "Thank you for providing all the information. Your ticket has been created!";
+      const botResponse = response.data
+      setMessages(prev => [...prev, { text: botResponse, sender: 'bot' }]);
+      setFormState(response.data);
 
-      setMessages([...messages, { text: userInput, sender: 'user' }]);
-      setUserInput('');
-
-      if (latestMessage?.feedback === "down") {
-        console.log('inside feedback down condition')
-        // console.log('latestMessage in handleSendMessage feedback:- ' + latestMessage.feedback)
-        // console.log('latestMessage in handleSendMessage issue:- ' + latestMessage.text.issue)
-        // console.log('latestMessage in handleSendMessage priority:- ' + latestMessage.text.priority)
-
-        // console.log(JSON.stringify({
-        //   user_feedback: userInput.trim(),
-        //   context: latestMessage.text
-        // }));
-
-        try {
-
-          const feedbackResponse = await fetch("http://127.0.0.1:8080/feedback", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              user_feedback: userInput.trim(),
-              context: latestMessage.text
-            }),
-          });
-
-          const data = await feedbackResponse.json();
-
-          console.log('Response from http://127.0.0.1:8080/feedback end point url')
-          // console.log(JSON.stringify({ issue: userInput.trim() }))
-          console.log(JSON.stringify(data, null, 2))
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { text: data.context, sender: 'bot', priorityIdentification: true, stage: "feedback" }
-          ]);
-        } catch (error) {
-          console.error("Error sending feedback:", error);
-          alert("Failed to send feedback");
-        }
-        // }else if(latestMessage?.feedback === "up"){
-        //     console.log('inside feedback up condition')
-      } else {
-        console.log('inside else condition')
-        try {
-          const response = await fetch('http://localhost:8080/priority_identification', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ issue: userInput.trim() })
-          });
-          const data = await response.json();
-          console.log('Response from http://127.0.0.1:8080/priority_identification end point url')
-          console.log(data)
-          setMessages((prevMessages) => [
-            ...prevMessages,
-            { text: data, sender: 'bot', priorityIdentification: true, stage: "priority_identification" }
-          ]);
-        } catch (error) {
-          console.error('Error:', error);
-          alert('Failed to retrieve response');
-        }
-      }
+    } catch (error) {
+      console.error('Error:', error);
+      setMessages(prev => [...prev, {
+        text: "Sorry, I encountered an error. Please try again.",
+        sender: 'bot'
+      }]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const toggleChatbot = () => {
     setIsOpen(!isOpen);
+  };
+
+  const startRecording = async () => {
+    setRecording(true);
+    try {
+      setUserInput('');
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      const audioChunks = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const formData = new FormData();
+        formData.append('audio', audioBlob);
+
+        try {
+          const response = await fetch('http://localhost:5000/api/transcribe', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await response.json();
+          setUserInput(data.transcription);
+        } catch (error) {
+          console.error('Transcription error:', error);
+        }
+      };
+
+      mediaRecorder.start();
+      setTimeout(() => {
+        mediaRecorder.stop();
+        setRecording(false);
+      }, 5000);
+    } catch (error) {
+      console.error('Recording error:', error);
+      setRecording(false);
+    }
   };
 
   return (
@@ -231,14 +156,118 @@ const Chatbot = () => {
             {messages.map((msg, index) => (
               <div key={index} className={`message ${msg.sender}`}>
                 <span className="message-icon">{msg.sender === 'user' ? '👤' : '🤖'}</span>
+                {msg.sender === 'user' && <p id="rs" dangerouslySetInnerHTML={{ __html: msg.text }} />}
                 {/* <p id="rs" dangerouslySetInnerHTML={{ __html: msg.text }} /> */}
-                {/* <p id="rs">{JSON.stringify(msg.text, null, 2)}</p> */}
+                {msg.sender === 'bot' && !msg.text.request_type && (
+                  <p id="rs" dangerouslySetInnerHTML={{ __html: msg.text }} />
+                )}
 
-                {!msg.priorityIdentification && <p id="rs" dangerouslySetInnerHTML={{ __html: msg.text }} />}
+                {/* {msg.sender === 'bot' && msg.text.is_create_ticket === "Confirm" && msg.text.ticket_confirmation && (
+                  <p id="rs">
+                    <div>{msg.text.ticket_confirmation}<br /><br /></div>
+                  </p>)} */}
+                {msg.sender === 'bot' && msg.text.request_type === "General Support Ticket" && !msg.text.ticket_confirmation && (
+                  <p id="rs">
+                    {!msg.text.follow_up_question && (
+                      <div><strong>{msg.text.information_message}</strong><br /><br /></div>
+                    )}
+                    <strong>Who are you filling this out for:</strong> {msg.text.issue_filling_for} <br /><br />
+                    <strong>Email:</strong> {msg.text.email} <br /><br />
+                    <strong>Full Name:</strong> {msg.text.full_name} <br /><br />
+                    <strong>Contact Method:</strong> {msg.text.contact_method} <br /><br />
+                    <strong>Contact Number:</strong> {msg.text.contact_number} <br /><br />
+                    <strong>Organization:</strong> {msg.text.organization} <br /><br />
+                    <strong>Contact Person:</strong> {msg.text.contact_person} <br /><br />
+                    <strong>Are you working remotely:</strong> {msg.text.is_working_remotely} <br /><br />
+                    <strong>Who is you issue affecting:</strong> {msg.text.issue_affecting} <br /><br />
+                    <strong>Issue Priority:</strong> {msg.text.issue_priority} <br /><br />
+                    <strong>Site:</strong> {msg.text.site} <br /><br />
+                    <strong>Support Category:</strong> {msg.text.support_category} <br /><br />
+                    <strong>Purpose Of Request:</strong> {msg.text.purpose_of_request} <br /><br />
+                    <strong>Type Of Request:</strong> {msg.text.request_type} <br /><br />
+                    {/* <strong>Follow Up Question:</strong> {msg.text.follow_up_question} <br /><br /> */}
+                    {msg.text.follow_up_question && (
+                      <div>
+                        <br /><br /><strong>Follow Up Question:</strong>
+                        <div>
+                          {msg.text.follow_up_question
+                            .split('?')
+                            .filter(q => q.trim() !== '')
+                            .map((q, index) => (
+                              <div key={index}>
+                                {index + 1}. {q.trim()}?
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                    {!msg.text.follow_up_question && (
+                      <div><strong>{msg.text.confirmation_message}</strong><br /><br /></div>
+                    )}
+                  </p>)}
 
-                {msg.priorityIdentification && (
+
+                {msg.sender === 'bot' && msg.text.request_type === "Order Equipment Ticket" && !msg.text.ticket_confirmation && (
+                  <p id="rs">
+                    {!msg.text.follow_up_question && (
+                      <div><strong>{msg.text.information_message}</strong><br /><br /></div>
+                    )}
+                    <strong>Requestor Email:</strong> {msg.text.requester_email} <br /><br />
+                    <strong>Contact Method:</strong> {msg.text.contact_method} <br /><br />
+                    <strong>Contact Number:</strong> {msg.text.contact_number} <br /><br />
+                    <strong>Approval Email:</strong> {msg.text.manager_email} <br /><br />
+                    <strong>Department Code:</strong> {msg.text.department_code} <br /><br />
+                    <strong>Are you requesting this equipment for yourself?:</strong> {msg.text.is_requesting_for_yourself} <br /><br />
+                    <strong>Equipment is for a new hire?:</strong> {msg.text.is_equipment_for_new_hire} <br /><br />
+                    <strong>Email Address:</strong> {msg.text.email_address} <br /><br />
+                    <strong>Requested For Name:</strong> {msg.text.requested_for_name} <br /><br />
+                    <strong>Employee:</strong> {msg.text.employee} <br /><br />
+                    <strong>Country:</strong> {msg.text.country} <br /><br />
+                    <strong>Site:</strong> {msg.text.site} <br /><br />
+                    <strong>Purpose Of Request:</strong> {msg.text.purpose_of_request} <br /><br />
+                    <strong>Type Of Request:</strong> {msg.text.request_type} <br /><br />
+                    {/* <strong>Follow Up Question:</strong> {msg.text.follow_up_question} <br /><br /> */}
+                    {msg.text.follow_up_question && (
+                      <div>
+                        <br /><br /><strong>Follow Up Question:</strong>
+                        <div>
+                          {msg.text.follow_up_question
+                            .split('?')
+                            .filter(q => q.trim() !== '')
+                            .map((q, index) => (
+                              <div key={index}>
+                                {index + 1}. {q.trim()}?
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                    {!msg.text.follow_up_question && (
+                      <div><strong>{msg.text.confirmation_message}</strong><br /><br /></div>
+                    )}
+                  </p>)}
+                {/* {msg.sender === 'bot' && msg.text?.is_create_ticket?.toLowerCase() === "confirm" && !msg.text.ticket_confirmation && (
+                  <p id="rs">
+                    <div><strong>{msg.text.ticket_confirmation}</strong><br /><br /></div>
+                  </p>)} */}
+
+                {/* {msg.sender === 'bot' && msg.text.is_create_ticket === "Confirm" && msg.text.ticket_confirmation && (() => { */}
+                {msg.sender === 'bot' && msg.text.ticket_confirmation && (() => {
+                  const parts = msg.text.ticket_confirmation.split(/(#[a-f0-9-]+)/i); // Split around the ticket ID
+                  return (
+                    <p id="rs">
+                      <div>
+                        {parts.map((part, index) =>
+                          part.startsWith('#') ? <strong key={index}>{part}</strong> : part
+                        )}
+                        <br /><br />
+                      </div>
+                    </p>
+                  );
+                })()}
+
+                {/* {msg.priorityIdentification && (
                   <div className="priority-response">
-
                     {msg.stage !== "incident_creation" && (
                       <p id="rs">
                         <strong>Issue Summary:</strong> {msg.text.summary} <br /><br />
@@ -249,136 +278,25 @@ const Chatbot = () => {
                         <strong>Issue Impact:</strong> {msg.text.impact} <br /><br />
                         <strong>Issue Urgency:</strong> {msg.text.urgency} <br /><br />
                       </p>
-                    )}
-
-                    {msg.text.jira_id && (
-                      <p id="rs">
-                        {/* <strong>JIRA ID:</strong> {msg.text.jira_id} <br /><br />
-                      <strong>JIRA Link:</strong> <a href={msg.text.jira_link} target="_blank" rel="noopener noreferrer">{msg.text.jira_link}</a> <br /><br /> */}
-                        <br /><strong>JIRA Link:</strong> <a href={msg.text.jira_link} target="_blank" rel="noopener noreferrer">{msg.text.jira_id}</a> <br /><br />
-                      </p>
-                    )}
-
-                    {/* Conditionally Display Whiteboard Information */}
-                    {msg.text.white_board_id && (
-                      <p id="rs">
-                        {/* <strong>Whiteboard ID:</strong> {msg.text.white_board_id} <br />
-                      <strong>Whiteboard Link:</strong> <a href={msg.text.white_board_link} target="_blank" rel="noopener noreferrer">{msg.text.white_board_link}</a> <br /><br /> */}
-                        <strong>White Board Information:</strong> <a href={msg.text.white_board_link} target="_blank" rel="noopener noreferrer">White Board</a> <br /><br />
-                      </p>
-                    )}
-
-                    {/* Conditionally Display Status Page Information */}
-                    {msg.text.status_io_id && (
-                      <p id="rs">
-                        {/* <strong>Status Page ID:</strong> {msg.text.status_io_id} <br />
-                      <strong>Status Page Link:</strong> <a href={msg.text.status_io_page_link} target="_blank" rel="noopener noreferrer">{msg.text.status_io_page_link}</a> <br /><br /> */}
-                        <strong>Status IO Page Information:</strong> <a href={msg.text.status_io_page_link} target="_blank" rel="noopener noreferrer">Status IO Page</a> <br /><br />
-                      </p>
-                    )}
-                    {/* {msg.stage !== "incident_creation" && (
-                      <div className="feedback-buttons">
-                        <button
-                          className={`thumb-button ${msg.feedback === 'up' ? 'selected' : ''}`}
-                          onClick={() => handleFeedback(index, 'up')}
-                        >
-                          👍
-                        </button>
-                        <button
-                          className={`thumb-button ${msg.feedback === 'down' ? 'selected' : ''}`}
-                          onClick={() => handleFeedback(index, 'down')}
-                        >
-                          👎
-                        </button>
-                      </div>
-                    )} */}
-                    {/* {msg.stage !== "incident_creation" && (
-                      <div className="feedback-buttons">
-                        {!msg.feedbackGiven && (
-                          <>
-                            <button
-                              className={`thumb-button ${msg.feedback === 'up' ? 'selected' : ''}`}
-                              onClick={() => handleFeedback(index, 'up')}
-                            >
-                              👍
-                            </button>
-                            <button
-                              className={`thumb-button ${msg.feedback === 'down' ? 'selected' : ''}`}
-                              onClick={() => handleFeedback(index, 'down')}
-                            >
-                              👎
-                            </button>
-                          </>
-                        )}
-
-                        {msg.feedbackGiven && (
-                          <button
-                            className="thumb-button selected"
-                            style={{ backgroundColor: "#ccc", cursor: "default" }} // Greyed-out button
-                          >
-                            {msg.feedback === "up" ? "👍" : "👎"}
-                          </button>
-                        )}
-                      </div>
                     )} */}
 
-                    {/* {msg.stage !== "incident_creation" && (
-                      <div className="feedback-buttons">
-                        {!msg.feedbackGiven ? (
-                          <>
-                            <button
-                              className="thumb-button"
-                              onClick={() => handleFeedback(index, 'up')}
-                            >
-                              👍
-                            </button>
-                            <button
-                              className="thumb-button"
-                              onClick={() => handleFeedback(index, 'down')}
-                            >
-                              👎
-                            </button>
-                          </>
-                        ) : (
-                          <button className="thumb-button">
-                            <span className="grey-thumb">{msg.feedback === "up" ? "👍" : "👎"}</span>
-                          </button>
-                        )}
-                      </div>
-                    )} */}
-                    {msg.stage !== "incident_creation" && (
-                      <div className="feedback-buttons">
-                        <button
-                          className={`thumb-button ${msg.feedback === "up" ? "selected" : ""}`}
-                          onClick={() => handleFeedback(index, "up")}
-                          disabled={msg.feedbackGiven} // Disable if feedback is given
-                        >
-                          👍
-                        </button>
-                        <button
-                          className={`thumb-button ${msg.feedback === "down" ? "selected" : ""}`}
-                          onClick={() => handleFeedback(index, "down")}
-                          disabled={msg.feedbackGiven} // Disable if feedback is given
-                        >
-                          👎
-                        </button>
-                      </div>
-                    )}
 
-                    {msg.feedbackMessage && (
-                      <p
-                        className={`feedback-message ${msg.feedback === "up" ? "feedback-green" : "feedback-orange"
-                          }`}
-                      >
-                        {msg.feedbackMessage}
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
             ))}
-
-
+            {/* {messages.map((message, index) => (
+              <div key={index} className={`message ${message.sender}`}>
+                {message.text}
+              </div>
+            ))} */}
+            {isLoading && (
+              <div className="message bot">
+                <div className="typing-indicator">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </div>
+              </div>
+            )}
             <div ref={messageEndRef}></div>
           </div>
           <div className="chatbot-input">
@@ -387,9 +305,23 @@ const Chatbot = () => {
               placeholder="Type your message..."
               value={userInput}
               onChange={handleInputChange}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+              disabled={isLoading}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSubmit(e);
+                }
+              }}
+            // onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
             />
-            <button onClick={handleSendMessage}>Send</button>
+            <button onClick={handleSubmit}>Send</button>
+            <button
+              onClick={startRecording}
+              className={recording ? 'recording' : ''}
+              disabled={recording}
+            >
+              {recording ? <span className="wave-animation">🎙️</span> : <img src={miclogo} alt="Mic" width="15" className="mic-icon" />
+              }
+            </button>
           </div>
         </div>
       )}
