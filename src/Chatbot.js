@@ -5,10 +5,14 @@ import miclogo from "./microphone-svgrepo-com.svg";
 //From 26464
 import axios from 'axios';
 
+let initial_input = ''
+let flag = false;
+
 const Chatbot = () => {
   const [messages, setMessages] = useState([
-    { text: 'Hello! How can I assist you today?', sender: 'bot' }
+    { text: 'Hello! How can I assist you today?', sender: 'bot'}
   ]);
+
   const [userInput, setUserInput] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const messageEndRef = useRef(null);
@@ -17,6 +21,11 @@ const Chatbot = () => {
   //From 26464
   // const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [intentIdentificationForm, setIntentIdentificationForm] = useState({
+    user_text: null,
+    conversation_history: []
+  });
+
   const [formState, setFormState] = useState({
     request_type: null,
     input: '',
@@ -50,28 +59,74 @@ const Chatbot = () => {
     setIsLoading(true);
 
     try {
+
+      if (initial_input === '') {
+        initial_input = userInput;
+        flag = true;
+      }
+
       const updatedState = { ...formState, input: userInput };
+      const intentIdentificationFormState = { ...intentIdentificationForm, user_text: userInput };
       // Determine which endpoint to call based on the current state
       // /intent_identification
-      let endpoint = '/get_ticket_information';
+      let endpoint = '';
       let requestData = updatedState;
 
-      // const latestBotMessage = [...messages].reverse().find(msg => msg.sender === 'bot');
-      // if (!latestBotMessage?.intent || latestBotMessage.intent === 'Unknown') {
+      console.log("initial_input")
+      console.log(initial_input)
+      const latestBotMessage = [...messages].reverse().find(msg => msg.sender === 'bot');
+
+      if(latestBotMessage.text === 'Hello! How can I assist you today?'){
+        endpoint = '/intent_identification';
+        requestData = intentIdentificationFormState;
+      }else if (latestBotMessage?.text?.intent === 'UNKNOWN') {
+        endpoint = '/intent_identification';
+        requestData = intentIdentificationFormState;
+      }else if (latestBotMessage?.text?.intent === 'TICKET_CREATION' || (latestBotMessage?.text?.request_type) ) {
+        endpoint = '/get_ticket_information';
+        if (flag) {
+          requestData = { ...updatedState, input: initial_input };
+          flag = false;
+        } else {
+          requestData = updatedState;
+        }
+        if (userInput.toLowerCase() === 'confirm' && !latestBotMessage.text?.intent_confirmation_message) {
+          endpoint = '/create_ticket';
+          // requestData = { ...updatedState, is_create_ticket: 'Confirm' };
+          requestData = { ...updatedState };
+        }
+      }
+
+
+      // if (!latestBotMessage.text?.intent || latestBotMessage.text.intent === 'UNKNOWN') {
       //   endpoint = '/intent_identification';
-      // }else{
+      //   requestData = intentIdentificationFormState;
+      //   // } else if ((!latestBotMessage?.intent || latestBotMessage.intent === 'UNKNOWN') && latestBotMessage?.value === 'TICKET_CREATION') {
+      // } else if (latestBotMessage.text?.intent && latestBotMessage.text.intent === 'TICKET_CREATION') {
       //   endpoint = '/get_ticket_information';
+      //   if (flag) {
+      //     requestData = { ...updatedState, input: initial_input };
+      //   } else {
+      //     requestData = updatedState;
+      //   }
+
+      //   if (userInput.toLowerCase() === 'confirm' && !latestBotMessage.text?.intent_confirmation_message) {
+      //     endpoint = '/create_ticket';
+      //     // requestData = { ...updatedState, is_create_ticket: 'Confirm' };
+      //     requestData = { ...updatedState };
+      //   }
+      // } else {
 
       // }
-      
 
-      // If we're in confirmation mode and user confirms, call create_ticket
-      // if (formState.is_create_ticket && userInput.toLowerCase() === 'confirm') {
-      if (userInput.toLowerCase() === 'confirm') {
-        endpoint = '/create_ticket';
-        // requestData = { ...updatedState, is_create_ticket: 'Confirm' };
-        requestData = { ...updatedState };
-      }
+
+      // // If we're in confirmation mode and user confirms, call create_ticket
+      // // if (formState.is_create_ticket && userInput.toLowerCase() === 'confirm') {
+      // if (userInput.toLowerCase() === 'confirm') {
+      //   endpoint = '/create_ticket';
+      //   // requestData = { ...updatedState, is_create_ticket: 'Confirm' };
+      //   requestData = { ...updatedState };
+      // }
 
       console.log("endpoint")
       console.log(endpoint)
@@ -82,8 +137,28 @@ const Chatbot = () => {
       // const botResponse = response.data.follow_up_question ||
       //   "Thank you for providing all the information. Your ticket has been created!";
       const botResponse = response.data
+
       setMessages(prev => [...prev, { text: botResponse, sender: 'bot' }]);
-      setFormState(response.data);
+
+      // if (!latestBotMessage.text?.intent || latestBotMessage.text.intent === 'UNKNOWN') {
+      //   setIntentIdentificationForm(response.data);
+      //   // initial_input = response.data.conversation_history
+      //   // console.log("initial_input")
+      //   // console.log(latestBotMessage.text.conversation_history)
+      //   // console.log(initial_input)
+      // }
+      // else {
+      //   setFormState(response.data);
+      // }
+
+      if(latestBotMessage.text === 'Hello! How can I assist you today?'){
+        setIntentIdentificationForm(response.data);
+      }else if (latestBotMessage?.text?.intent === 'UNKNOWN') {
+        setIntentIdentificationForm(response.data);
+      }else if (latestBotMessage?.text?.intent === 'TICKET_CREATION' || (latestBotMessage?.text?.request_type) ) {
+        setFormState(response.data);
+      }
+
 
     } catch (error) {
       console.error('Error:', error);
@@ -158,10 +233,37 @@ const Chatbot = () => {
                 <span className="message-icon">{msg.sender === 'user' ? '👤' : '🤖'}</span>
                 {msg.sender === 'user' && <p id="rs" dangerouslySetInnerHTML={{ __html: msg.text }} />}
                 {/* <p id="rs" dangerouslySetInnerHTML={{ __html: msg.text }} /> */}
-                {msg.sender === 'bot' && !msg.text.request_type && (
+                {msg.sender === 'bot' && !msg.text?.intent && !msg.text.request_type && (
                   <p id="rs" dangerouslySetInnerHTML={{ __html: msg.text }} />
                 )}
+                {msg.sender === 'bot' && msg.text?.intent && (
+                  <p id="rs">
+                    {/* {!msg.text.follow_up && (
+                      <div><strong>{msg.text.intent_information_message}</strong><br /><br /></div>
+                    )} */}
+                    <strong>Intent: </strong>{msg.text.intent}  <br /><br />
+                    {msg.text.follow_up && Array.isArray(msg.text.follow_up) && (
+                      <div>
+                        <strong>Please provide more detail:</strong>
+                        <ul>
+                          {msg.text.follow_up.map((question, index) => (
+                            // <li key={index}>
+                            //   {question}
+                            // </li>
+                            <div key={index}>
+                              {index + 1}. {question}
+                            </div>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {/* <strong>{msg.text.follow_up}</strong>  <br /><br /> */}
+                    {!msg.text.follow_up && (
+                      <div><strong>{msg.text.intent_confirmation_message}</strong><br /><br /></div>
+                    )}
+                  </p>
 
+                )}
                 {/* {msg.sender === 'bot' && msg.text.is_create_ticket === "Confirm" && msg.text.ticket_confirmation && (
                   <p id="rs">
                     <div>{msg.text.ticket_confirmation}<br /><br /></div>
