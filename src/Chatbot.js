@@ -293,11 +293,11 @@ const Chatbot = () => {
                         <br /><br /><strong>Follow Up Question:</strong>
                         <div>
                           {msg.text.follow_up_question
-                            .split('?')
+                            .split('\n')
                             .filter(q => q.trim() !== '')
                             .map((q, index) => (
                               <div key={index}>
-                                {index + 1}. {q.trim()}?
+                                {index + 1}. {q.trim()}.
                               </div>
                             ))}
                         </div>
@@ -334,11 +334,11 @@ const Chatbot = () => {
                         <br /><br /><strong>Follow Up Question:</strong>
                         <div>
                           {msg.text.follow_up_question
-                            .split('?')
+                            .split('\n')
                             .filter(q => q.trim() !== '')
                             .map((q, index) => (
                               <div key={index}>
-                                {index + 1}. {q.trim()}?
+                                {index + 1}. {q.trim()}.
                               </div>
                             ))}
                         </div>
