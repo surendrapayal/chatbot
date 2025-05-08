@@ -10,7 +10,7 @@ let flag = false;
 
 const Chatbot = () => {
   const [messages, setMessages] = useState([
-    { text: 'Hello! How can I assist you today?', sender: 'bot'}
+    { text: 'Hello! How can I assist you today?', sender: 'bot' }
   ]);
 
   const [userInput, setUserInput] = useState('');
@@ -76,13 +76,13 @@ const Chatbot = () => {
       console.log(initial_input)
       const latestBotMessage = [...messages].reverse().find(msg => msg.sender === 'bot');
 
-      if(latestBotMessage.text === 'Hello! How can I assist you today?'){
+      if (latestBotMessage.text === 'Hello! How can I assist you today?') {
         endpoint = '/intent_identification';
         requestData = intentIdentificationFormState;
-      }else if (latestBotMessage?.text?.intent === 'UNKNOWN') {
+      } else if (latestBotMessage?.text?.intent === 'UNKNOWN') {
         endpoint = '/intent_identification';
         requestData = intentIdentificationFormState;
-      }else if (latestBotMessage?.text?.intent === 'TICKET_CREATION' || (latestBotMessage?.text?.request_type) ) {
+      } else if (latestBotMessage?.text?.intent === 'TICKET_CREATION' || (latestBotMessage?.text?.request_type)) {
         endpoint = '/get_ticket_information';
         if (flag) {
           requestData = { ...updatedState, input: initial_input };
@@ -151,11 +151,11 @@ const Chatbot = () => {
       //   setFormState(response.data);
       // }
 
-      if(latestBotMessage.text === 'Hello! How can I assist you today?'){
+      if (latestBotMessage.text === 'Hello! How can I assist you today?') {
         setIntentIdentificationForm(response.data);
-      }else if (latestBotMessage?.text?.intent === 'UNKNOWN') {
+      } else if (latestBotMessage?.text?.intent === 'UNKNOWN') {
         setIntentIdentificationForm(response.data);
-      }else if (latestBotMessage?.text?.intent === 'TICKET_CREATION' || (latestBotMessage?.text?.request_type) ) {
+      } else if (latestBotMessage?.text?.intent === 'TICKET_CREATION' || (latestBotMessage?.text?.request_type)) {
         setFormState(response.data);
       }
 
@@ -245,16 +245,18 @@ const Chatbot = () => {
                     {msg.text.follow_up && Array.isArray(msg.text.follow_up) && (
                       <div>
                         <strong>Please provide more detail:</strong>
-                        <ul>
+                        <ol style={{ listStyleType: 'none', paddingLeft: 0 }}>
+                          {/* <ul> */}
                           {msg.text.follow_up.map((question, index) => (
-                            // <li key={index}>
-                            //   {question}
-                            // </li>
-                            <div key={index}>
-                              {index + 1}. {question}
-                            </div>
+                            <li key={index}>
+                              {question}
+                            </li>
+                            // <div key={index}>
+                            //   {index + 1}. {question}
+                            // </div>
                           ))}
-                        </ul>
+                          {/* </ul> */}
+                        </ol>
                       </div>
                     )}
                     {/* <strong>{msg.text.follow_up}</strong>  <br /><br /> */}
