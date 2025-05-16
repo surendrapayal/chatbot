@@ -131,7 +131,7 @@ const Chatbot = () => {
       console.log("endpoint")
       console.log(endpoint)
 
-      // const response = await axios.post('http://localhost:8080/get_ticket_information', updatedState);
+      // const response = await axios.post('http://localhost:8082/get_ticket_information', updatedState);
       const response = await axios.post(`http://localhost:8080${endpoint}`, requestData);
       console.log(response)
       // const botResponse = response.data.follow_up_question ||
@@ -285,6 +285,9 @@ const Chatbot = () => {
                     <strong>Are you working remotely:</strong> {msg.text.is_working_remotely} <br /><br />
                     <strong>Who is you issue affecting:</strong> {msg.text.issue_affecting} <br /><br />
                     <strong>Issue Priority:</strong> {msg.text.issue_priority} <br /><br />
+                    <strong>Country:</strong> {msg.text.country} <br /><br />
+                    <strong>State:</strong> {msg.text.state} <br /><br />
+                    <strong>City:</strong> {msg.text.city} <br /><br />
                     <strong>Site:</strong> {msg.text.site} <br /><br />
                     <strong>Support Category:</strong> {msg.text.support_category} <br /><br />
                     <strong>Purpose Of Request:</strong> {msg.text.purpose_of_request} <br /><br />
